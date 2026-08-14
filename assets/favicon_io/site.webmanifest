@@ -1,0 +1,22 @@
+{
+  "name": "rPlay Infinite Looper",
+  "short_name": "rPlay",
+  "icons": [
+    {
+      "src": "android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0d0e15",
+  "background_color": "#0b0c10",
+  "start_url": "/rPlay/",
+  "scope": "/rPlay/",
+  "display": "standalone",
+  "orientation": "portrait"
+}

@@ -1,0 +1,19 @@
+services:
+  rplay:
+    container_name: rPlay
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    volumes:
+      # Persistent host log directory to monitor access in real-time
+      - ./logs:/var/log/nginx
+    restart: unless-stopped

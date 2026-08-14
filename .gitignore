@@ -1,0 +1,12 @@
+# Logs
+logs/
+*.log
+
+# Docker & Server Local Files
+.htpasswd
+docker-compose.override.yml
+
+# HalayaRomana
+/.locl
+*.sh
+*.conf

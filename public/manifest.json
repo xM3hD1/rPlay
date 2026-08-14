@@ -1,0 +1,15 @@
+{
+  "name": "rPlay Infinite Looper",
+  "short_name": "rPlay",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0c10",
+  "theme_color": "#0d0e15",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/isometric-folders/512/play.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
