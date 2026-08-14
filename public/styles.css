@@ -1,15 +1,3 @@
-:root {
-  --bg-color: #0b0c10;
-  --surface-color: #171922;
-  --surface-border: rgba(255, 255, 255, 0.08);
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --accent-color: #ec4899;
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
-  --radius: 16px;
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -17,8 +5,21 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
+:root {
+  /* Darkish sleek palette */
+  --bg-color: #0d0e15;            /* Main page background */
+  --surface-color: #161822;       /* Player card background */
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --primary-color: #6366f1;       /* Indigo accent */
+  --primary-hover: #4f46e5;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+}
+
 body {
-  background-color: var(--bg-color);
+  /* Smooth dark ambient background */
+  background: radial-gradient(circle at top, #1a1c29 0%, #0d0e15 100%);
+  background-attachment: fixed;
   color: var(--text-main);
   min-height: 100vh;
   display: flex;
