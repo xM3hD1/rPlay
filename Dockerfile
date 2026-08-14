@@ -6,8 +6,9 @@ RUN rm /etc/nginx/conf.d/default.conf
 # Copy custom hardened nginx config
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy frontend static files
+# Copy public static files AND assets into the web root
 COPY ./public /usr/share/nginx/html
+COPY ./assets /usr/share/nginx/html/assets
 
 # Fix permissions so Nginx can run non-root
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
