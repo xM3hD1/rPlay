@@ -1,139 +1,146 @@
 <!DOCTYPE html>
 <html lang="en" prefix="og: http://ogp.me/ns#">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-  <!-- Primary SEO Metadata -->
-  <title>rPlay — Infinite YouTube & Local Media Looper</title>
-  <meta name="title" content="rPlay — Infinite YouTube & Local Media Looper">
-  <meta name="description" content="Loop YouTube videos, MP3s, and MP4s endlessly with precision A-B looping. Free, responsive, pure frontend PWA app.">
-  <meta name="author" content="rPlay">
-  <meta name="robots" content="index, follow">
+    <!-- Primary SEO Metadata -->
+    <title>rPlay — Infinite YouTube & Local Media Looper</title>
+    <meta name="title" content="rPlay — Infinite YouTube & Local Media Looper">
+    <meta name="description"
+        content="Loop YouTube videos, MP3s, and MP4s endlessly with precision A-B looping. Free, responsive, pure frontend PWA app.">
+    <meta name="author" content="rPlay">
+    <meta name="robots" content="index, follow">
 
-  <!-- Mobile & PWA Theme Controls -->
-  <meta name="theme-color" content="#0d0e15">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="rPlay">
+    <!-- Mobile & PWA Theme Controls -->
+    <meta name="theme-color" content="#0d0e15">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="rPlay">
 
-  <!-- Favicons & Touch Icons -->
-  <link rel="icon" type="image/x-icon" href="assets/favicon_io/favicon.ico">
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon_io/favicon-16x16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon_io/favicon-32x32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon_io/apple-touch-icon.png">
-  <link rel="manifest" href="manifest.json">
+    <!-- Favicons & Touch Icons -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon_io/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon_io/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon_io/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon_io/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
 
-  <!-- Open Graph / WhatsApp / Telegram Previews -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://xm3hd1.github.io/rPlay/">
-  <meta property="og:site_name" content="rPlay">
-  <meta property="og:title" content="rPlay — Infinite YouTube & Local Media Looper">
-  <meta property="og:description" content="Loop YouTube videos, MP3s, and MP4s endlessly with custom A-B repetition points. Free PWA player.">
-  
-  <!-- Image Card Settings (Direct 512x512 PNG URL) -->
-  <meta property="og:image" content="https://xm3hd1.github.io/rPlay/assets/favicon_io/android-chrome-512x512.png">
-  <meta property="og:image:secure_url" content="https://xm3hd1.github.io/rPlay/assets/favicon_io/android-chrome-512x512.png">
-  <meta property="og:image:type" content="image/png">
-  <meta property="og:image:width" content="512">
-  <meta property="og:image:height" content="512">
-  <meta property="og:image:alt" content="rPlay Logo">
+    <!-- Open Graph / WhatsApp / Social Sharing Previews -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://xm3hd1.github.io/rPlay/">
+    <meta property="og:site_name" content="rPlay">
+    <meta property="og:title" content="rPlay — Infinite YouTube & Local Media Looper">
+    <meta property="og:description"
+        content="Loop YouTube videos, MP3s, and MP4s endlessly with custom A-B repetition points. Free PWA player.">
 
-  <!-- Twitter / X Cards -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="rPlay — Infinite YouTube & Local Media Looper">
-  <meta name="twitter:description" content="Loop YouTube videos, MP3s, and MP4s endlessly with custom A-B repetition points. Free PWA player.">
-  <meta name="twitter:image" content="https://xm3hd1.github.io/rPlay/assets/favicon_io/android-chrome-512x512.png">
+    <!-- High-Res Cover Card (1200x630) -->
+    <meta property="og:image" content="https://xm3hd1.github.io/rPlay/assets/favicon_io/og-cover.png">
+    <meta property="og:image:secure_url" content="https://xm3hd1.github.io/rPlay/assets/favicon_io/og-cover.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="rPlay Media Player Preview">
 
-  <!-- Fonts & Styles -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+    <!-- Twitter / X Large Summary Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="rPlay — Infinite YouTube & Local Media Looper">
+    <meta name="twitter:description"
+        content="Loop YouTube videos, MP3s, and MP4s endlessly with custom A-B repetition points. Free PWA player.">
+    <meta name="twitter:image" content="https://xm3hd1.github.io/rPlay/assets/favicon_io/og-cover.png">
+
+    <!-- Fonts & Styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-  <div class="app-container">
-    
-    <!-- Header with 3D CSS App Icon -->
-    <header class="app-header">
-      <div class="logo-3d">
-        <div class="logo-inner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 2l4 4-4 4"/>
-            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
-            <path d="M7 22l-4-4 4-4"/>
-            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
-          </svg>
-        </div>
-      </div>
-      <div>
-        <h1>rPlay</h1>
-        <p class="subtitle">Endless Playback Control</p>
-      </div>
-    </header>
+    <div class="app-container">
 
-    <!-- Source Selector Tabs -->
-    <div class="source-tabs">
-      <button class="tab-btn active" id="tab-yt">YouTube</button>
-      <button class="tab-btn" id="tab-local">Local File</button>
+        <!-- Header with 3D CSS App Icon -->
+        <header class="app-header">
+            <div class="logo-3d">
+                <div class="logo-inner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M17 2l4 4-4 4" />
+                        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+                        <path d="M7 22l-4-4 4-4" />
+                        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+                    </svg>
+                </div>
+            </div>
+            <div>
+                <h1>rPlay</h1>
+                <p class="subtitle">Endless Playback Control</p>
+            </div>
+        </header>
+
+        <!-- Source Selector Tabs -->
+        <div class="source-tabs">
+            <button class="tab-btn active" id="tab-yt">YouTube</button>
+            <button class="tab-btn" id="tab-local">Local File</button>
+        </div>
+
+        <!-- YouTube Section -->
+        <section id="section-yt" class="tab-content active">
+            <div class="input-group">
+                <input type="text" id="yt-url" placeholder="Paste YouTube URL or Video ID...">
+                <button id="btn-load-yt" class="btn-primary">Load & Loop</button>
+            </div>
+        </section>
+
+        <!-- Local File Section -->
+        <section id="section-local" class="tab-content">
+            <div class="file-dropzone" id="dropzone">
+                <input type="file" id="local-file-input" accept="audio/*,video/*" hidden>
+                <p>📁 Drag & Drop audio/video file here, or <span class="highlight">Browse</span></p>
+            </div>
+        </section>
+
+        <!-- Player Screen -->
+        <main class="player-wrapper">
+            <div id="yt-player-container" class="media-container">
+                <div id="yt-player"></div>
+            </div>
+
+            <div id="local-player-container" class="media-container hidden">
+                <video id="local-video" controls playsinline class="hidden"></video>
+                <audio id="local-audio" controls class="hidden"></audio>
+            </div>
+
+            <!-- Advanced A-B Looper Controls -->
+            <div class="ab-loop-panel">
+                <div class="panel-header">
+                    <span>A-B Precision Loop</span>
+                    <label class="switch">
+                        <input type="checkbox" id="ab-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="ab-controls">
+                    <div class="ab-field">
+                        <label>Start Point (A): <span id="val-point-a">00:00</span></label>
+                        <button id="btn-set-a" class="btn-secondary">Set A (Current)</button>
+                    </div>
+                    <div class="ab-field">
+                        <label>End Point (B): <span id="val-point-b">00:00</span></label>
+                        <button id="btn-set-b" class="btn-secondary">Set B (Current)</button>
+                    </div>
+                </div>
+                <button id="btn-reset-ab" class="btn-text">Reset Points</button>
+            </div>
+        </main>
     </div>
 
-    <!-- YouTube Section -->
-    <section id="section-yt" class="tab-content active">
-      <div class="input-group">
-        <input type="text" id="yt-url" placeholder="Paste YouTube URL or Video ID...">
-        <button id="btn-load-yt" class="btn-primary">Load & Loop</button>
-      </div>
-    </section>
-
-    <!-- Local File Section -->
-    <section id="section-local" class="tab-content">
-      <div class="file-dropzone" id="dropzone">
-        <input type="file" id="local-file-input" accept="audio/*,video/*" hidden>
-        <p>📁 Drag & Drop audio/video file here, or <span class="highlight">Browse</span></p>
-      </div>
-    </section>
-
-    <!-- Player Screen -->
-    <main class="player-wrapper">
-      <div id="yt-player-container" class="media-container">
-        <div id="yt-player"></div>
-      </div>
-      
-      <div id="local-player-container" class="media-container hidden">
-        <video id="local-video" controls playsinline class="hidden"></video>
-        <audio id="local-audio" controls class="hidden"></audio>
-      </div>
-
-      <!-- Advanced A-B Looper Controls -->
-      <div class="ab-loop-panel">
-        <div class="panel-header">
-          <span>A-B Precision Loop</span>
-          <label class="switch">
-            <input type="checkbox" id="ab-toggle">
-            <span class="slider round"></span>
-          </label>
-        </div>
-
-        <div class="ab-controls">
-          <div class="ab-field">
-            <label>Start Point (A): <span id="val-point-a">00:00</span></label>
-            <button id="btn-set-a" class="btn-secondary">Set A (Current)</button>
-          </div>
-          <div class="ab-field">
-            <label>End Point (B): <span id="val-point-b">00:00</span></label>
-            <button id="btn-set-b" class="btn-secondary">Set B (Current)</button>
-          </div>
-        </div>
-        <button id="btn-reset-ab" class="btn-text">Reset Points</button>
-      </div>
-    </main>
-  </div>
-
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script src="app.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="app.js"></script>
 </body>
+
 </html>
