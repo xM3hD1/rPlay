@@ -358,6 +358,52 @@ function setupEvents() {
   startLoopEngine();
 }
 
+// --- Silent Audio Anchor for Background PWA Keep-Alive ---
+let silentAnchor = null;
+
+function initSilentAnchor() {
+  if (!silentAnchor) {
+    // 1-second silent WAV data URI to trick Chrome Mobile into maintaining background audio focus
+    silentAnchor = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+    silentAnchor.loop = true;
+  }
+}
+
+// --- Sync MediaSession Playback State ---
+function syncMediaSessionState(isPlaying) {
+  if (!('mediaSession' in navigator)) return;
+
+  if (isPlaying) {
+    navigator.mediaSession.playbackState = 'playing';
+    
+    // Play silent anchor on user gesture to claim Android Background Audio Focus
+    initSilentAnchor();
+    silentAnchor.play().catch(() => {});
+  } else {
+    navigator.mediaSession.playbackState = 'paused';
+    if (silentAnchor) silentAnchor.pause();
+  }
+}
+
+// --- Hook Sync into Play/Pause Functions ---
+function playMedia() {
+  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.playVideo) {
+    ytPlayer.playVideo();
+  } else if (state.activeSource === 'local' && activeLocalElement) {
+    activeLocalElement.play();
+  }
+  syncMediaSessionState(true);
+}
+
+function pauseMedia() {
+  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.pauseVideo) {
+    ytPlayer.pauseVideo();
+  } else if (state.activeSource === 'local' && activeLocalElement) {
+    activeLocalElement.pause();
+  }
+  syncMediaSessionState(false);
+}
+
 function registerSW() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Reg Failed:', err));
