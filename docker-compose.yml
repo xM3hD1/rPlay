@@ -10,10 +10,9 @@ services:
       - no-new-privileges:true
     read_only: true
     tmpfs:
-      - /var/cache/nginx
-      - /var/run
       - /tmp
+      - /var/run:uid=101,gid=101,mode=755
+      - /var/cache/nginx:uid=101,gid=101,mode=755
     volumes:
-      # Persistent host log directory to monitor access in real-time
       - ./logs:/var/log/nginx
     restart: unless-stopped

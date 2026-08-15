@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rplay-v1';
+const CACHE_NAME = 'rplay-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -34,8 +34,12 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
 
-  // Let external API and media stream requests bypass static asset cache
-  if (e.request.url.includes('/api/v1/') || e.request.url.includes('googlevideo.com')) {
+  // Let stream and API requests bypass the PWA static cache
+  if (
+    e.request.url.includes('/api/v1/') || 
+    e.request.url.includes('googlevideo.com') ||
+    e.request.headers.get('range')
+  ) {
     return;
   }
 

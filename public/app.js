@@ -2,15 +2,11 @@
 const state = {
   activeSource: 'yt', // 'yt' or 'local'
   ytVideoId: '5qap5aO4i9A',
-  localFile: null,
-  abLoopEnabled: false,
-  pointA: 0,
-  pointB: 0,
   trackTitle: 'rPlay Media',
   trackArtist: 'Infinite Looper'
 };
 
-// --- Invidious Public Instances List (Public & No Auth Required) ---
+// --- Invidious Public Instances List ---
 const INVIDIOUS_INSTANCES = [
   'https://invidious.nerdvpn.de',
   'https://inv.us.projectsegfau.lt',
@@ -31,49 +27,18 @@ const localAudio = document.getElementById('local-audio');
 const dropzone = document.getElementById('dropzone');
 const localFileInput = document.getElementById('local-file-input');
 
-const abToggle = document.getElementById('ab-toggle');
-const btnSetA = document.getElementById('btn-set-a');
-const btnSetB = document.getElementById('btn-set-b');
-const btnResetAB = document.getElementById('btn-reset-ab');
-const valPointA = document.getElementById('val-point-a');
-const valPointB = document.getElementById('val-point-b');
-
 let ytPlayer = null;
 let activeLocalElement = null;
-let loopInterval = null;
-let useInvidiousAudio = false; // Toggles HTML5 audio mode for YouTube background playback
+let useInvidiousAudio = false;
 
 // --- Initialize App ---
 function init() {
-  loadSavedState();
   setupTabs();
   setupEvents();
   setupKeyboardShortcuts();
   setupMediaSession();
+  setupNativeLooping();
   registerSW();
-}
-
-function loadSavedState() {
-  const saved = localStorage.getItem('rplay_state');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    state.ytVideoId = parsed.ytVideoId || state.ytVideoId;
-    state.pointA = parsed.pointA || 0;
-    state.pointB = parsed.pointB || 0;
-    state.abLoopEnabled = parsed.abLoopEnabled || false;
-    
-    abToggle.checked = state.abLoopEnabled;
-    updateABDisplay();
-  }
-}
-
-function saveState() {
-  localStorage.setItem('rplay_state', JSON.stringify({
-    ytVideoId: state.ytVideoId,
-    pointA: state.pointA,
-    pointB: state.pointB,
-    abLoopEnabled: state.abLoopEnabled
-  }));
 }
 
 // --- Tab Controls ---
@@ -92,7 +57,6 @@ function switchTab(source) {
     ytContainer.classList.remove('hidden');
     localContainer.classList.add('hidden');
     if (activeLocalElement && !useInvidiousAudio) activeLocalElement.pause();
-    updateMediaMetadata(state.trackTitle || 'YouTube Video', 'YouTube');
   } else {
     tabLocal.classList.add('active');
     tabYt.classList.remove('active');
@@ -102,22 +66,40 @@ function switchTab(source) {
     ytContainer.classList.add('hidden');
     if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
     useInvidiousAudio = false;
-    updateMediaMetadata(state.trackTitle || 'Local Media File', 'Local Audio/Video');
   }
+}
+
+// --- Configure Native OS-Level Looping ---
+function setupNativeLooping() {
+  // Enables hardware/OS level background looping
+  localAudio.loop = true;
+  localVideo.loop = true;
+
+  // Fallback listener in case OS overrides loop flag
+  localAudio.addEventListener('ended', () => {
+    localAudio.currentTime = 0;
+    localAudio.play();
+  });
+  
+  localVideo.addEventListener('ended', () => {
+    localVideo.currentTime = 0;
+    localVideo.play();
+  });
 }
 
 // --- Invidious Audio Stream Extractor ---
 async function fetchYouTubeAudioStream(videoId) {
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
-      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, { signal: AbortSignal.timeout(4000) });
+      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, { 
+        signal: AbortSignal.timeout(3500) 
+      });
       if (!res.ok) continue;
       
       const data = await res.json();
-      const audioStreams = data.adaptiveFormats.filter(f => f.type && f.type.startsWith('audio/'));
+      const audioStreams = data.adaptiveFormats?.filter(f => f.type && f.type.startsWith('audio/')) || [];
       
       if (audioStreams.length > 0) {
-        // Pick best audio quality (highest bitrate)
         audioStreams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
         return {
           url: audioStreams[0].url,
@@ -126,7 +108,7 @@ async function fetchYouTubeAudioStream(videoId) {
         };
       }
     } catch (e) {
-      console.warn(`Invidious instance ${instance} failed, trying next...`);
+      console.warn(`Invidious instance ${instance} unreachable, trying next...`);
     }
   }
   return null;
@@ -136,7 +118,9 @@ async function loadInvidiousYouTubeStream(videoId) {
   const streamData = await fetchYouTubeAudioStream(videoId);
   if (streamData) {
     useInvidiousAudio = true;
+    localAudio.crossOrigin = "anonymous";
     localAudio.src = streamData.url;
+    localAudio.loop = true; // Native background loop
     localAudio.classList.remove('hidden');
     activeLocalElement = localAudio;
     
@@ -147,12 +131,12 @@ async function loadInvidiousYouTubeStream(videoId) {
   return false;
 }
 
-// --- Unified Media Controls ---
+// --- Unified Media Playback ---
 function playMedia() {
   if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.playVideo) {
     ytPlayer.playVideo();
   } else if (activeLocalElement) {
-    activeLocalElement.play();
+    activeLocalElement.play().catch(e => console.warn('Autoplay prevented:', e));
   }
   syncMediaSessionState(true);
 }
@@ -176,52 +160,62 @@ function togglePlayPause() {
 }
 
 function seekRelative(offset) {
-  const targetTime = Math.max(0, getCurrentTime() + offset);
-  setCurrentTime(targetTime);
-}
-
-// --- Silent Audio Anchor for Background PWA Keep-Alive ---
-let silentAnchor = null;
-
-function initSilentAnchor() {
-  if (!silentAnchor) {
-    silentAnchor = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-    silentAnchor.loop = true;
+  if (activeLocalElement) {
+    activeLocalElement.currentTime = Math.max(0, activeLocalElement.currentTime + offset);
+  } else if (ytPlayer && ytPlayer.getCurrentTime) {
+    ytPlayer.seekTo(Math.max(0, ytPlayer.getCurrentTime() + offset));
   }
+  updatePositionState();
 }
 
+// --- Lock Screen & MediaSession API ---
 function syncMediaSessionState(isPlaying) {
   if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+  updatePositionState();
+}
 
-  if (isPlaying) {
-    navigator.mediaSession.playbackState = 'playing';
-    initSilentAnchor();
-    silentAnchor.play().catch(() => {});
-  } else {
-    navigator.mediaSession.playbackState = 'paused';
-    if (silentAnchor) silentAnchor.pause();
+function updatePositionState() {
+  if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+
+  let duration = 0;
+  let currentTime = 0;
+
+  if (activeLocalElement && !isNaN(activeLocalElement.duration)) {
+    duration = activeLocalElement.duration;
+    currentTime = activeLocalElement.currentTime;
+  } else if (ytPlayer && ytPlayer.getDuration) {
+    duration = ytPlayer.getDuration();
+    currentTime = ytPlayer.getCurrentTime();
+  }
+
+  if (duration > 0 && currentTime <= duration) {
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: duration,
+        playbackRate: 1.0,
+        position: currentTime
+      });
+    } catch (e) {
+      // Ignore transient position sync errors
+    }
   }
 }
 
-// --- Media Session API ---
 function setupMediaSession() {
   if (!('mediaSession' in navigator)) return;
 
-  updateMediaMetadata('rPlay Looper', 'Active Player');
+  updateMediaMetadata('rPlay Infinite Player', 'Ready');
 
   navigator.mediaSession.setActionHandler('play', () => playMedia());
   navigator.mediaSession.setActionHandler('pause', () => pauseMedia());
-  navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-    seekRelative(-(details.seekOffset || 5));
-  });
-  navigator.mediaSession.setActionHandler('seekforward', (details) => {
-    seekRelative(details.seekOffset || 5);
-  });
+  navigator.mediaSession.setActionHandler('seekbackward', (details) => seekRelative(-(details.seekOffset || 5)));
+  navigator.mediaSession.setActionHandler('seekforward', (details) => seekRelative(details.seekOffset || 5));
   navigator.mediaSession.setActionHandler('previoustrack', () => {
-    setCurrentTime(state.abLoopEnabled ? state.pointA : 0);
+    if (activeLocalElement) activeLocalElement.currentTime = 0;
   });
   navigator.mediaSession.setActionHandler('nexttrack', () => {
-    setCurrentTime(state.abLoopEnabled ? state.pointA : 0);
+    if (activeLocalElement) activeLocalElement.currentTime = 0;
   });
 }
 
@@ -233,91 +227,40 @@ function updateMediaMetadata(title, artist) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: title,
       artist: artist,
-      album: 'rPlay Infinite Looper',
+      album: 'rPlay Looper',
       artwork: [
+        { src: 'assets/favicon_io/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
         { src: 'assets/favicon_io/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
       ]
     });
   }
 }
 
-// --- Keyboard Shortcuts Listener ---
-function setupKeyboardShortcuts() {
-  document.addEventListener('keydown', (e) => {
-    const activeEl = document.activeElement;
-    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-      return;
-    }
-
-    switch (e.code) {
-      case 'Space':
-        e.preventDefault();
-        togglePlayPause();
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        seekRelative(-5);
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        seekRelative(5);
-        break;
-      case 'KeyA':
-        e.preventDefault();
-        btnSetA.click();
-        break;
-      case 'KeyB':
-        e.preventDefault();
-        btnSetB.click();
-        break;
-      case 'KeyR':
-        e.preventDefault();
-        btnResetAB.click();
-        break;
-      case 'KeyL':
-        e.preventDefault();
-        abToggle.click();
-        break;
-    }
-  });
-}
-
-// --- YouTube Integration ---
+// --- YouTube API ---
 window.onYouTubeIframeAPIReady = function() {
   ytPlayer = new YT.Player('yt-player', {
     videoId: state.ytVideoId,
-    playerVars: { 'autoplay': 0, 'controls': 1, 'rel': 0 },
+    playerVars: { 'autoplay': 0, 'controls': 1, 'rel': 0, 'playsinline': 1 },
     events: {
-      'onStateChange': onPlayerStateChange
+      'onStateChange': (e) => {
+        if (e.data === YT.PlayerState.PLAYING) syncMediaSessionState(true);
+        if (e.data === YT.PlayerState.PAUSED) syncMediaSessionState(false);
+        if (e.data === YT.PlayerState.ENDED) ytPlayer.playVideo(); // Infinite loop for iframe mode
+      }
     }
   });
 };
-
-function onPlayerStateChange(event) {
-  if (event.data === YT.PlayerState.PLAYING) {
-    if (ytPlayer.getVideoData) {
-      const data = ytPlayer.getVideoData();
-      updateMediaMetadata(data.title || 'YouTube Video', data.author || 'YouTube Channel');
-    }
-  }
-
-  if (event.data === YT.PlayerState.ENDED) {
-    setCurrentTime(state.abLoopEnabled ? state.pointA : 0);
-    playMedia();
-  }
-}
 
 document.getElementById('btn-load-yt').addEventListener('click', async () => {
   const urlVal = document.getElementById('yt-url').value.trim();
   const videoId = extractYouTubeID(urlVal);
   if (videoId) {
     state.ytVideoId = videoId;
-    saveState();
 
-    // Try background-capable Invidious stream first
+    // Load Invidious direct stream (Required for mobile background lockscreen playback)
     const loadedInvidious = await loadInvidiousYouTubeStream(videoId);
     
-    // Fallback to IFrame Player if Invidious instances are unreachable
+    // Fallback to Iframe if Invidious public instances fail
     if (!loadedInvidious && ytPlayer && ytPlayer.loadVideoById) {
       useInvidiousAudio = false;
       ytPlayer.loadVideoById(videoId);
@@ -359,85 +302,23 @@ function handleFile(file) {
     activeLocalElement = localAudio;
   }
 
+  activeLocalElement.loop = true; // Hardcoded native background loop
   updateMediaMetadata(file.name.replace(/\.[^/.]+$/, ""), "Local File");
-
-  activeLocalElement.loop = !state.abLoopEnabled;
   playMedia();
-  
-  activeLocalElement.onended = () => {
-    activeLocalElement.currentTime = state.abLoopEnabled ? state.pointA : 0;
-    playMedia();
-  };
-}
-
-// --- Loop Engine ---
-function getCurrentTime() {
-  if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.getCurrentTime) {
-    return ytPlayer.getCurrentTime();
-  } else if (activeLocalElement) {
-    return activeLocalElement.currentTime;
-  }
-  return 0;
-}
-
-function setCurrentTime(seconds) {
-  if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.seekTo) {
-    ytPlayer.seekTo(seconds);
-  } else if (activeLocalElement) {
-    activeLocalElement.currentTime = seconds;
-  }
-}
-
-function startLoopEngine() {
-  if (loopInterval) clearInterval(loopInterval);
-  loopInterval = setInterval(() => {
-    if (!state.abLoopEnabled || state.pointB <= state.pointA) return;
-    
-    const now = getCurrentTime();
-    if (now >= state.pointB) {
-      setCurrentTime(state.pointA);
-    }
-  }, 200);
-}
-
-function formatTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-}
-
-function updateABDisplay() {
-  valPointA.textContent = formatTime(state.pointA);
-  valPointB.textContent = formatTime(state.pointB);
 }
 
 function setupEvents() {
-  abToggle.addEventListener('change', (e) => {
-    state.abLoopEnabled = e.target.checked;
-    if (activeLocalElement) activeLocalElement.loop = !state.abLoopEnabled;
-    saveState();
-  });
+  // UI Event hooks reserved for future controls
+}
 
-  btnSetA.addEventListener('click', () => {
-    state.pointA = getCurrentTime();
-    updateABDisplay();
-    saveState();
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+    if (e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
+    if (e.code === 'ArrowLeft') { e.preventDefault(); seekRelative(-5); }
+    if (e.code === 'ArrowRight') { e.preventDefault(); seekRelative(5); }
   });
-
-  btnSetB.addEventListener('click', () => {
-    state.pointB = getCurrentTime();
-    updateABDisplay();
-    saveState();
-  });
-
-  btnResetAB.addEventListener('click', () => {
-    state.pointA = 0;
-    state.pointB = 0;
-    updateABDisplay();
-    saveState();
-  });
-
-  startLoopEngine();
 }
 
 function registerSW() {
