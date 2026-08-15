@@ -33,7 +33,12 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  
+
+  // Let external API and media stream requests bypass static asset cache
+  if (e.request.url.includes('/api/v1/') || e.request.url.includes('googlevideo.com')) {
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then((res) => res || fetch(e.request))
   );

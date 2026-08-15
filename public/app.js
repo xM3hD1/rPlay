@@ -10,6 +10,15 @@ const state = {
   trackArtist: 'Infinite Looper'
 };
 
+// --- Invidious Public Instances List (Public & No Auth Required) ---
+const INVIDIOUS_INSTANCES = [
+  'https://invidious.nerdvpn.de',
+  'https://inv.us.projectsegfau.lt',
+  'https://invidious.flokinet.to',
+  'https://invidious.privacydev.net',
+  'https://yt.drgnz.club'
+];
+
 // --- DOM Elements ---
 const tabYt = document.getElementById('tab-yt');
 const tabLocal = document.getElementById('tab-local');
@@ -32,6 +41,7 @@ const valPointB = document.getElementById('val-point-b');
 let ytPlayer = null;
 let activeLocalElement = null;
 let loopInterval = null;
+let useInvidiousAudio = false; // Toggles HTML5 audio mode for YouTube background playback
 
 // --- Initialize App ---
 function init() {
@@ -81,7 +91,7 @@ function switchTab(source) {
     sectionLocal.classList.remove('active');
     ytContainer.classList.remove('hidden');
     localContainer.classList.add('hidden');
-    if (activeLocalElement) activeLocalElement.pause();
+    if (activeLocalElement && !useInvidiousAudio) activeLocalElement.pause();
     updateMediaMetadata(state.trackTitle || 'YouTube Video', 'YouTube');
   } else {
     tabLocal.classList.add('active');
@@ -91,32 +101,76 @@ function switchTab(source) {
     localContainer.classList.remove('hidden');
     ytContainer.classList.add('hidden');
     if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+    useInvidiousAudio = false;
     updateMediaMetadata(state.trackTitle || 'Local Media File', 'Local Audio/Video');
   }
 }
 
+// --- Invidious Audio Stream Extractor ---
+async function fetchYouTubeAudioStream(videoId) {
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) continue;
+      
+      const data = await res.json();
+      const audioStreams = data.adaptiveFormats.filter(f => f.type && f.type.startsWith('audio/'));
+      
+      if (audioStreams.length > 0) {
+        // Pick best audio quality (highest bitrate)
+        audioStreams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+        return {
+          url: audioStreams[0].url,
+          title: data.title,
+          author: data.author
+        };
+      }
+    } catch (e) {
+      console.warn(`Invidious instance ${instance} failed, trying next...`);
+    }
+  }
+  return null;
+}
+
+async function loadInvidiousYouTubeStream(videoId) {
+  const streamData = await fetchYouTubeAudioStream(videoId);
+  if (streamData) {
+    useInvidiousAudio = true;
+    localAudio.src = streamData.url;
+    localAudio.classList.remove('hidden');
+    activeLocalElement = localAudio;
+    
+    updateMediaMetadata(streamData.title, streamData.author);
+    playMedia();
+    return true;
+  }
+  return false;
+}
+
 // --- Unified Media Controls ---
 function playMedia() {
-  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.playVideo) {
+  if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.playVideo) {
     ytPlayer.playVideo();
-  } else if (state.activeSource === 'local' && activeLocalElement) {
+  } else if (activeLocalElement) {
     activeLocalElement.play();
   }
+  syncMediaSessionState(true);
 }
 
 function pauseMedia() {
-  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.pauseVideo) {
+  if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.pauseVideo) {
     ytPlayer.pauseVideo();
-  } else if (state.activeSource === 'local' && activeLocalElement) {
+  } else if (activeLocalElement) {
     activeLocalElement.pause();
   }
+  syncMediaSessionState(false);
 }
 
 function togglePlayPause() {
-  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.getPlayerState) {
+  if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.getPlayerState) {
     const pState = ytPlayer.getPlayerState();
     pState === YT.PlayerState.PLAYING ? pauseMedia() : playMedia();
-  } else if (state.activeSource === 'local' && activeLocalElement) {
+  } else if (activeLocalElement) {
     activeLocalElement.paused ? playMedia() : pauseMedia();
   }
 }
@@ -124,6 +178,29 @@ function togglePlayPause() {
 function seekRelative(offset) {
   const targetTime = Math.max(0, getCurrentTime() + offset);
   setCurrentTime(targetTime);
+}
+
+// --- Silent Audio Anchor for Background PWA Keep-Alive ---
+let silentAnchor = null;
+
+function initSilentAnchor() {
+  if (!silentAnchor) {
+    silentAnchor = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+    silentAnchor.loop = true;
+  }
+}
+
+function syncMediaSessionState(isPlaying) {
+  if (!('mediaSession' in navigator)) return;
+
+  if (isPlaying) {
+    navigator.mediaSession.playbackState = 'playing';
+    initSilentAnchor();
+    silentAnchor.play().catch(() => {});
+  } else {
+    navigator.mediaSession.playbackState = 'paused';
+    if (silentAnchor) silentAnchor.pause();
+  }
 }
 
 // --- Media Session API ---
@@ -158,7 +235,7 @@ function updateMediaMetadata(title, artist) {
       artist: artist,
       album: 'rPlay Infinite Looper',
       artwork: [
-        { src: 'https://img.icons8.com/isometric-folders/512/play.png', sizes: '512x512', type: 'image/png' }
+        { src: 'assets/favicon_io/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
       ]
     });
   }
@@ -167,7 +244,6 @@ function updateMediaMetadata(title, artist) {
 // --- Keyboard Shortcuts Listener ---
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    // Ignore input typing focus
     const activeEl = document.activeElement;
     if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
       return;
@@ -225,20 +301,25 @@ function onPlayerStateChange(event) {
     }
   }
 
-  // Instant loop trigger
   if (event.data === YT.PlayerState.ENDED) {
     setCurrentTime(state.abLoopEnabled ? state.pointA : 0);
     playMedia();
   }
 }
 
-document.getElementById('btn-load-yt').addEventListener('click', () => {
+document.getElementById('btn-load-yt').addEventListener('click', async () => {
   const urlVal = document.getElementById('yt-url').value.trim();
   const videoId = extractYouTubeID(urlVal);
   if (videoId) {
     state.ytVideoId = videoId;
     saveState();
-    if (ytPlayer && ytPlayer.loadVideoById) {
+
+    // Try background-capable Invidious stream first
+    const loadedInvidious = await loadInvidiousYouTubeStream(videoId);
+    
+    // Fallback to IFrame Player if Invidious instances are unreachable
+    if (!loadedInvidious && ytPlayer && ytPlayer.loadVideoById) {
+      useInvidiousAudio = false;
       ytPlayer.loadVideoById(videoId);
     }
   }
@@ -262,6 +343,7 @@ dropzone.addEventListener('drop', (e) => {
 
 function handleFile(file) {
   if (!file) return;
+  useInvidiousAudio = false;
   const fileURL = URL.createObjectURL(file);
   const isVideo = file.type.startsWith('video');
 
@@ -280,28 +362,28 @@ function handleFile(file) {
   updateMediaMetadata(file.name.replace(/\.[^/.]+$/, ""), "Local File");
 
   activeLocalElement.loop = !state.abLoopEnabled;
-  activeLocalElement.play();
+  playMedia();
   
   activeLocalElement.onended = () => {
     activeLocalElement.currentTime = state.abLoopEnabled ? state.pointA : 0;
-    activeLocalElement.play();
+    playMedia();
   };
 }
 
 // --- Loop Engine ---
 function getCurrentTime() {
-  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.getCurrentTime) {
+  if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.getCurrentTime) {
     return ytPlayer.getCurrentTime();
-  } else if (state.activeSource === 'local' && activeLocalElement) {
+  } else if (activeLocalElement) {
     return activeLocalElement.currentTime;
   }
   return 0;
 }
 
 function setCurrentTime(seconds) {
-  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.seekTo) {
+  if (state.activeSource === 'yt' && !useInvidiousAudio && ytPlayer && ytPlayer.seekTo) {
     ytPlayer.seekTo(seconds);
-  } else if (state.activeSource === 'local' && activeLocalElement) {
+  } else if (activeLocalElement) {
     activeLocalElement.currentTime = seconds;
   }
 }
@@ -356,52 +438,6 @@ function setupEvents() {
   });
 
   startLoopEngine();
-}
-
-// --- Silent Audio Anchor for Background PWA Keep-Alive ---
-let silentAnchor = null;
-
-function initSilentAnchor() {
-  if (!silentAnchor) {
-    // 1-second silent WAV data URI to trick Chrome Mobile into maintaining background audio focus
-    silentAnchor = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-    silentAnchor.loop = true;
-  }
-}
-
-// --- Sync MediaSession Playback State ---
-function syncMediaSessionState(isPlaying) {
-  if (!('mediaSession' in navigator)) return;
-
-  if (isPlaying) {
-    navigator.mediaSession.playbackState = 'playing';
-    
-    // Play silent anchor on user gesture to claim Android Background Audio Focus
-    initSilentAnchor();
-    silentAnchor.play().catch(() => {});
-  } else {
-    navigator.mediaSession.playbackState = 'paused';
-    if (silentAnchor) silentAnchor.pause();
-  }
-}
-
-// --- Hook Sync into Play/Pause Functions ---
-function playMedia() {
-  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.playVideo) {
-    ytPlayer.playVideo();
-  } else if (state.activeSource === 'local' && activeLocalElement) {
-    activeLocalElement.play();
-  }
-  syncMediaSessionState(true);
-}
-
-function pauseMedia() {
-  if (state.activeSource === 'yt' && ytPlayer && ytPlayer.pauseVideo) {
-    ytPlayer.pauseVideo();
-  } else if (state.activeSource === 'local' && activeLocalElement) {
-    activeLocalElement.pause();
-  }
-  syncMediaSessionState(false);
 }
 
 function registerSW() {
